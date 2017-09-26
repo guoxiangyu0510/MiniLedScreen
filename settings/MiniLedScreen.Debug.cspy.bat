@@ -25,7 +25,7 @@ if not "%~1" == "" goto debugFile
 
 @echo on 
 
-"D:\Program Files\IAR Systems\Embedded Workbench 7.3\common\bin\cspybat" -f "G:\mini LED屏幕项目\Firmware\MiniLedScreen\settings\MiniLedScreen.Debug.general.xcl" --backend -f "G:\mini LED屏幕项目\Firmware\MiniLedScreen\settings\MiniLedScreen.Debug.driver.xcl" 
+"D:\Program Files\IAR Systems\Embedded Workbench 7.3\common\bin\cspybat" -f "G:\MiniLedScreen\settings\MiniLedScreen.Debug.general.xcl" --backend -f "G:\MiniLedScreen\settings\MiniLedScreen.Debug.driver.xcl" 
 
 @echo off 
 goto end 
@@ -34,7 +34,7 @@ goto end
 
 @echo on 
 
-"D:\Program Files\IAR Systems\Embedded Workbench 7.3\common\bin\cspybat" -f "G:\mini LED屏幕项目\Firmware\MiniLedScreen\settings\MiniLedScreen.Debug.general.xcl" "--debug_file=%~1" --backend -f "G:\mini LED屏幕项目\Firmware\MiniLedScreen\settings\MiniLedScreen.Debug.driver.xcl" 
+"D:\Program Files\IAR Systems\Embedded Workbench 7.3\common\bin\cspybat" -f "G:\MiniLedScreen\settings\MiniLedScreen.Debug.general.xcl" "--debug_file=%~1" --backend -f "G:\MiniLedScreen\settings\MiniLedScreen.Debug.driver.xcl" 
 
 @echo off 
 :end

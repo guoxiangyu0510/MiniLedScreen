@@ -28,6 +28,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm8l15x_it.h"
+#include "LedScreen.h"
 
 /** @addtogroup STM8L15x_StdPeriph_Template
   * @{
@@ -364,6 +365,7 @@ INTERRUPT_HANDLER(TIM4_UPD_OVF_TRG_IRQHandler,25)
     */
     TIM4_ClearFlag( TIM4_FLAG_Update );
     
+    LedScreen_Scan();
 }
 /**
   * @brief SPI1 Interrupt routine.

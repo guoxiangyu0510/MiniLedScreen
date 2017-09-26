@@ -1982,22 +1982,22 @@
   <group>
     <name>User</name>
     <file>
+      <name>$PROJ_DIR$\Driver\1527.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Driver\LedScreen.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\User\main.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\Driver\Misc.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\User\Picture.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\User\Picture.h</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\stm8l15x_conf.h</name>
-    </file>
-    <file>
       <name>$PROJ_DIR$\User\stm8l15x_it.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\stm8l15x_it.h</name>
     </file>
   </group>
 </project>

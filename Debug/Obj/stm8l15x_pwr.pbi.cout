@@ -1,18 +1,22 @@
-"G:\mini LED屏幕项目\Firmware\MiniLedScreen\STM8L15x_StdPeriph_Driver\src\stm8l15x_pwr.c"
+"G:\MiniLedScreen\STM8L15x_StdPeriph_Driver\src\stm8l15x_pwr.c"
 -std=c99
 -ferror-limit=100
 -I
-G:\mini LED屏幕项目\Firmware\MiniLedScreen
+G:\MiniLedScreen\User
 -I
-G:\mini LED屏幕项目\Firmware\MiniLedScreen\STM8L15x_StdPeriph_Driver\inc
+G:\MiniLedScreen\STM8L15x_StdPeriph_Driver\inc
+-I
+G:\MiniLedScreen\Driver
 -I
 D:\Program Files\IAR Systems\Embedded Workbench 7.3\stm8\inc
 -I
 D:\Program Files\IAR Systems\Embedded Workbench 7.3\stm8\inc\c
 -I
-G:\mini LED屏幕项目\Firmware\MiniLedScreen
+G:\MiniLedScreen\User
 -I
-G:\mini LED屏幕项目\Firmware\MiniLedScreen\STM8L15x_StdPeriph_Driver\inc
+G:\MiniLedScreen\STM8L15x_StdPeriph_Driver\inc
+-I
+G:\MiniLedScreen\Driver
 -D__CHAR_BITS__=8
 -D__CHAR_MAX__=0xff
 -D__CHAR_MIN__=0
