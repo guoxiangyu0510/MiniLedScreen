@@ -19,13 +19,21 @@ void Delay(__IO uint16_t nCount)
     }
 }
 
+void DelayMs( __IO uint16_t nCount )
+{
+    while(nCount--)
+    {
+        Delay( 60000 );
+    }
+}
+
 void SysClk2msTick( void )
 {
     Clk2msCnt ++;
     if( Clk2msCnt >= 250 )
     {
         Clk2msCnt = 0;
-        Clk500msFlag = 0;
+        Clk500msFlag = 1;
     }
 }
 

@@ -10,4 +10,10 @@ extern const uint8_t Pic1[];
 //OK ÷ ∆
 extern const uint8_t Pic2[];
 
+//–¶¡≥
+extern const uint8_t Pic3[];
+
+//ASCII
+extern const uint8_t Ascii[];
+
 #endif
