@@ -2,184 +2,132 @@
 #include "1527.h"
 #include "Misc.h"
 
-
+//定义LED端口
+#define LED_PORT                GPIOD
+#define LED_PINS                GPIO_Pin_0
+#define KEY_PORT                GPIOB
+#define KEY_PINS                GPIO_Pin_1
 
 volatile uint8_t Ev1527RecvOkFlag = 0;
-volatile uint8_t Ev1527EventKey = EV1527_KEY_NONE;
-
-uint8_t  Ev1527RecvBuf[3];
-uint8_t  RfSelfAddr[3];
+uint8_t  Ev1527RecvBuf[12];
+uint8_t  DevRfAddr[3];
 
 void EV1527_Init( void )
 {
     /*外部中断*/
-    GPIO_Init( EV1527_INT_PORT, EV1527_INT_PIN, GPIO_Mode_In_PU_IT );   //上拉输入
-    EXTI_DeInit();                                                      //恢复中断的所有设置 
-    EXTI_SetPinSensitivity( EXTI_Pin_1, EXTI_Trigger_Falling );         //外部中断1，下降沿触发，向量号9
-    
-    CLK_PeripheralClockConfig( CLK_Peripheral_TIM3, ENABLE );
-    TIM3_DeInit();
-    TIM3_TimeBaseInit( TIM3_Prescaler_16, TIM3_CounterMode_Up, 0xFFFF );
-    TIM3_ARRPreloadConfig( ENABLE );
-    TIM3_ClearFlag( TIM3_FLAG_Update );
-    FLASH_ReadData( EV1527_CFG_SAVE_ADDR, RfSelfAddr, 3 );
-}
-
-void EV1527_SetPower( uint8_t Pwr )
-{
-    if( Pwr )
-    {
-        GPIO_Init( EV1527_INT_PORT, EV1527_INT_PIN, GPIO_Mode_In_PU_IT );
-    }
-    else
-    {
-        GPIO_Init( EV1527_INT_PORT, EV1527_INT_PIN, GPIO_Mode_In_PU_No_IT );
-    }
+    GPIO_Init( KEY_PORT, KEY_PINS, GPIO_Mode_In_PU_IT );
+    //GPIO_Init( GPIOC, GPIO_Pin_1, GPIO_Mode_In_PU_IT );
+    EXTI_DeInit();                                             //恢复中断的所有设置 
+    EXTI_SetPinSensitivity( EXTI_Pin_1, EXTI_Trigger_Falling );   //外部中断1，下降沿触发，向量号9 
+    FLASH_ReadData( EV1527_CFG_SAVE_ADDR, DevRfAddr, 3 );
+    GPIO_Init( LED_PORT, LED_PINS, GPIO_Mode_Out_PP_High_Fast ); //初始化LED端口
 }
 
 void EV1527_SaveSelfAddr( uint8_t NewAddr[3] )
 {
     FLASH_WriteData( EV1527_CFG_SAVE_ADDR, NewAddr, 3 );
-    memcpy( RfSelfAddr, NewAddr, 3 );
+    memcpy( DevRfAddr, NewAddr, 3 );
 }
 
-//统计当前电平状态时间
-static uint16_t EV1527_BitTime( BitStatus Bit )
-{ 
-    int8_t  Time = 0;
-        
-    if( ((EV1527_INT_PORT->IDR & (uint8_t)EV1527_INT_PIN)?SET:RESET) != Bit )
+int8_t EV1527_RecvBit( void )
+{
+    uint16_t T;        //电平时间
+    
+    //每个码位应该都是以高电平开始，如果为低电平则过滤
+    while( GPIO_ReadInputDataBit( EV1527_INT_PORT, EV1527_INT_PIN ) == RESET );
+    
+    //接收高电平，统计时间
+    TIM2_SetCounter( 0x0000 );
+    TIM2_Cmd( ENABLE );
+    while( GPIO_ReadInputDataBit( EV1527_INT_PORT, EV1527_INT_PIN ) == SET );
+    TIM2_Cmd( DISABLE );
+    T = TIM2_GetCounter();
+    if( T > 12 )       //超时，非正常高电平时间
     {
-        return 0;
+        return -1;
+    }
+    if( T > 4 )        //高电平大于4T为码位1
+    {
+        return EV1527_BIT_1;
+    }
+    
+    //接收低电平进一步判断是否为同步码
+    TIM2_SetCounter( 0x0000 );
+    TIM2_Cmd( ENABLE );
+    while( GPIO_ReadInputDataBit( EV1527_INT_PORT, EV1527_INT_PIN ) == RESET );
+    TIM2_Cmd( DISABLE );
+    T = TIM2_GetCounter();
+    if( T > 124 )
+    {
+        return -1;
+    }
+    if( T > 12 )     //同步码
+    {
+        return EV1527_BIT_SYN;
+    }
+    return EV1527_BIT_0;   
+}
+
+int8_t EV1527_Recv( uint8_t* RecvBuf )
+{
+    int8_t   ThisBit;
+    int8_t   Ret;
+    uint8_t  i;
+    
+    //接收地址码(前10个码位)
+    for( i=0; i<20; i++)
+    {
+        ThisBit = EV1527_RecvBit();
+        if( ThisBit < 0 )
+        {
+            GOTO_RET( _lRet, Ret, -1 );
+        }
+    }
+
+    //接收数据码(后2个码位)
+    for( i=0; i<4; i++)
+    {
+        TIM2_SetCounter( 0x0000 );
     } 
-    
-    TIM3_SetCounter( 0x0000 ); 
-    TIM3_Cmd( ENABLE );  
-    while( ((EV1527_INT_PORT->IDR & (uint8_t)EV1527_INT_PIN)?SET:RESET) == Bit )
-    {
-        if( TIM3_GetFlagStatus( TIM3_FLAG_Update) == SET )
-        {
-            TIM3_ClearFlag( TIM3_FLAG_Update );
-            goto _lRet;
-        }
-    }
-    Time = TIM3_GetCounter();
 _lRet:
-    TIM3_Cmd( DISABLE );
-    return Time;
+    
+    return Ret;   
 }
 
-#define EV1527_HIGH     RESET
-#define EV1527_LOW      SET
-
-static int8_t EV1527_RecvBit( void )
+int8_t EV1257_IsReceived( void )
 {
-    uint16_t TH,TL;        //电平时间
-    
-    //每个码位应该都是以高电平开始 
-    TH = EV1527_BitTime( EV1527_HIGH );
-    if( TH == 0 )
+    if( memcmp( Ev1527RecvBuf, DevRfAddr, 3 ) == 0 )
     {
-        return -1;
-    }
-    
-    TL = EV1527_BitTime( EV1527_LOW );
-    if( TL == 0 )
-    {
-        return -1;
-    }
-    
-    if( TH <= 15 || TL <= 15 || TH >= 120|| TL >= 120 )
-    {
-        return -1;
-    }
-    
-    if( TH < 37 )
-    {
-        if( TL > 80 )
+        //匹配键码
+        switch( Ev1527RecvBuf[3] )
         {
-            return EV1527_BIT_0;
+            //开显示,设置显示参数
+        case EV1527_KEY0:
+            break;
+        case EV1527_KEY1:
+            break;
+        case EV1527_KEY2:
+            break;
+        case EV1527_KEY3:
+            break;
+        default:
+            break;
+        }
+        if( 1 )
+        {
+            //LedScrnAutoSetLum();
         }
     }
-    else if( TH > 80 )
-    {
-        if( TL < 37 )
-        {
-            return EV1527_BIT_1;
-        }
-    }
-    else
-    {
-    }
-    return -1;
+    return 0;
 }
 
-int8_t EV1527_RecvData( void )
+uint8_t EV1257_GetRecvData( void )
 {
-    int8_t   BitCnt;
-    uint8_t  ByteCnt;
-    
-    ByteCnt = 0;
-    BitCnt = 0;
-    while( ByteCnt < 3 )
-    {
-        switch( EV1527_RecvBit() )
-        {
-            //同步码
-            case EV1527_BIT_SYN:
-                BitCnt = 0;
-                ByteCnt = 0;
-                break;
-            case EV1527_BIT_1:
-                Ev1527RecvBuf[ByteCnt] <<= 1;
-                Ev1527RecvBuf[ByteCnt] |= 1;
-                BitCnt ++;
-                break;
-            case EV1527_BIT_0:
-                Ev1527RecvBuf[ByteCnt] <<= 1;
-                BitCnt ++;
-                break;
-            default:
-                return -1;
-        }
-        if( BitCnt >= 8 )
-        {
-            BitCnt = 0;
-            ByteCnt ++;
-        }
-    }
-    //if( Ev1527RecvBuf[0] == RfSelfAddr[0] && 
-    //    Ev1527RecvBuf[1] == RfSelfAddr[1] &&
-    //    Ev1527RecvBuf[2]&0xF0 == RfSelfAddr[2]&0xF0 )
-    //{
-        Ev1527EventKey = Ev1527RecvBuf[2] & 0x0F;
-        Ev1527RecvOkFlag = 1;
-    //}
-    return 0;   
+    return Ev1527RecvBuf[3];
 }
 
-uint8_t* EV1257_GetRecvBuf( void )
-{
-    return Ev1527RecvBuf;
-}
-
-uint8_t EV1257_GetEventKey( void )
-{
-    if( Ev1527RecvOkFlag )
-    {
-        return Ev1527EventKey;
-    }
-    return EV1527_KEY_NONE;
-}
-
-uint8_t EV1257_IsReceived( void )
-{
-    return Ev1527RecvOkFlag;
-}
-
-void EV1257_RecvNext( void )
+void EV1257_ClearRecvBuf( void )
 {
     memset( Ev1527RecvBuf, 0x00, sizeof(Ev1527RecvBuf) );
     Ev1527RecvOkFlag = 0;
-    Ev1527EventKey = EV1527_KEY_NONE;
 }

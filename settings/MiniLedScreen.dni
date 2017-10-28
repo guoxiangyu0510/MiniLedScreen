@@ -38,14 +38,11 @@ ShowSource=1
 [Simulator]
 Freq=16000000
 [DebugChecksum]
-Checksum=-1487853231
+Checksum=-1830097030
 [CallStack]
 ShowArgs=0
 [Disassembly]
 MixedMode=1
-[array_types]
-Fmt0=uint8_t[12]	4	0
-Fmt1=uint8_t[3]	4	0
 [watch_formats]
 Fmt0={W}1:SysClk	3	0
 Fmt1={W}1:nCount	4	0
@@ -62,7 +59,8 @@ LoggingEnabled=_ 0
 LogFile=_ ""
 [Breakpoints]
 Bp0=_ "STD_CODE" "{$PROJ_DIR$\main.c}.120.5" 0 0 0 0 "" 0 ""
-Count=1
+Bp1=_ "STD_CODE" "{$PROJ_DIR$\User\stm8l15x_it.c}.368.5" 1 0 0 0 "" 0 ""
+Count=2
 [Aliases]
 Count=0
 SuppressDialog=0

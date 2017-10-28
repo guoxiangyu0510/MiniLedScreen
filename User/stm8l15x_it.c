@@ -29,9 +29,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm8l15x_it.h"
 #include "LedScreen.h"
-#include "Misc.h"
-#include "1527.h"
-      
+
 /** @addtogroup STM8L15x_StdPeriph_Template
   * @{
   */
@@ -175,10 +173,8 @@ INTERRUPT_HANDLER(EXTI1_IRQHandler,9)
     /* In order to detect unexpected events during development,
        it is recommended to set a breakpoint on the following instruction.
     */
-    //EV1527_INT_PORT->CR2 &= (uint8_t)(~(EV1527_INT_PIN));
-    EV1527_RecvData();
     EXTI_ClearITPendingBit (EXTI_IT_Pin1);//清除中断标志
-    //EV1527_INT_PORT->CR2 |= (uint8_t)(EV1527_INT_PIN);
+    GPIO_ToggleBits( GPIOD, GPIO_Pin_0 );
 }
 
 /**
@@ -368,7 +364,7 @@ INTERRUPT_HANDLER(TIM4_UPD_OVF_TRG_IRQHandler,25)
        it is recommended to set a breakpoint on the following instruction.
     */
     TIM4_ClearFlag( TIM4_FLAG_Update );
-    SysClk2msTick();
+    
     LedScreen_Scan();
 }
 /**

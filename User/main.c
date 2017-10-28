@@ -8,130 +8,61 @@
 
 
 
+
+
 void BoardInit( void )
-{     
-    uint8_t Cnt;
-    char Ch;
-    
-    Misc_Init();
-    
+{   
     LedScreen_Init();
     
     EV1527_Init();
+       
+    Misc_Init();
     
     enableInterrupts();
-    
-    //短路Boot引脚进入遥控学习模式
-    GPIO_Init( GPIOC, GPIO_Pin_0, GPIO_Mode_In_PU_No_IT );
-    if( (GPIOC->IDR & (uint8_t)GPIO_Pin_0) == 0 )
-    {
-        Cnt = 0;
-        while( Cnt < 4 )
-        {
-            EV1527_SetPower( EV1527_PWR_OFF );
-            LedScreen_SetPower( LedScrn_On ); 
-            
-            Ch = '1' + Cnt;
-            LedScreen_Clear();
-            LedScreen_PrintString( 0, 0, &Ch ); 
-            DelayMs( 8 );
-            
-            LedScreen_SetPower( LedScrn_Off );
-            EV1527_SetPower( EV1527_PWR_ON );
-            while( EV1257_IsReceived() == 0 );
-
-            EV1527_SetPower( EV1527_PWR_OFF );   
-            LedScreen_SetPower( LedScrn_On ); 
-            LedScreen_Clear();
-            LedScreen_PrintHex( 0, 0, EV1257_GetRecvBuf(), 3 );
-            DelayMs( 8 );
-            
-            EV1257_RecvNext();
-            Cnt++;
-        }
-        LedScreen_Clear();
-        LedScreen_SetPower( LedScrn_Off );     
-    }
 }
 
 void main(void)
 {
-    uint8_t ScrnOnDispFlag = 0;
-    uint8_t ScrnFlash = 0;
-    uint8_t ScrnFlashCnt = 0;
-    uint8_t *DispPicture;
-    
+    uint8_t ScrnOnDispFlag=0;
+    uint8_t ScrnFlash=0;
         
     BoardInit();
     
-    EV1527_SetPower( EV1527_PWR_OFF );   
-    LedScreen_SetPower( LedScrn_On ); 
-    //LedScreen_PrintString(0,0,"1234567abDZ");
-    LedScreen_PlayInitMovie();    
-    LedScreen_SetPower( LedScrn_Off );
-    EV1527_SetPower( EV1527_PWR_ON ); 
-    
     while(1)
     {
-        
         if( EV1257_IsReceived() )
-        {       
-            switch( EV1257_GetEventKey() )
+        {
+            
+            switch( EV1257_GetRecvData() )
             {
             case EV1527_KEY0:
-                DispPicture = (uint8_t*)Pic0;
-                break;
+                    break;
             case EV1527_KEY1:
-                DispPicture = (uint8_t*)Pic1;
                 break;
             case EV1527_KEY2:
-                DispPicture = (uint8_t*)Pic2;
                 break;
-            case EV1527_KEY3:
-                DispPicture = (uint8_t*)Pic3;
-                break;
-            default:
-                break;
-            }   
-            
-            EV1527_SetPower( 0 );
-            LedScreen_SetPower( LedScrn_On );
+            }
             
             ScrnOnDispFlag = 1;
-            ScrnFlashCnt = 0;
             
             //等到Int引脚平静后进入睡眠模式
-            EV1257_RecvNext();
+            EV1257_ClearRecvBuf();
         }
         if( Clk500msFlag )
         {
-            Clk500msFlag = 0;      
+            Clk500msFlag = 0;
             if( ScrnOnDispFlag )   
             {
                 ScrnFlash = !ScrnFlash;
-                ScrnFlashCnt ++;
-                if( ScrnFlashCnt >= 6 )
-                {
-                    ScrnOnDispFlag = 0;
-                    ScrnFlashCnt = 0;
-                    LedScreen_Clear();
-                    LedScreen_SetPower( LedScrn_Off );
-                    EV1527_SetPower( 1 );             
-                }           
             }
-            if( !ScrnFlash )
+            if( ScrnFlash )
             {
-                LedScreen_Clear();
+                LEDSCRN_SET_STAT( LEDSCRN_ON );
             }
             else
             {
-                LedScreen_ShowImage( DispPicture, Normal);
+                LEDSCRN_SET_STAT( LEDSCRN_OFF );
             }
-        }
-        if( !ScrnOnDispFlag )
-        {
-            sim();  
-            halt();     //掉电模0.278ms
         }
     }
 }
